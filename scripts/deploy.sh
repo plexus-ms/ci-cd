@@ -27,15 +27,16 @@ HOST="${1:?usage: deploy.sh <ssh-host> <app> <image-ref>}"
 APP="${2:?usage: deploy.sh <ssh-host> <app> <image-ref>}"
 IMAGE="${3:?usage: deploy.sh <ssh-host> <app> <image-ref>}"
 
-# Overridable knobs (sane defaults for the stateless-app profile).
+# Overridable knobs (sane defaults for the stateless-app profile). An empty
+# HEALTH_URL is resolved on the host from platform.env's PLEXUS_APP_PORT.
 APP_DIR="${PLEXUS_APP_DIR:-/opt/stacks/$APP}"
-HEALTH_URL="${PLEXUS_HEALTH_URL:-http://127.0.0.1:3000/healthz}"
+HEALTH_URL="${PLEXUS_HEALTH_URL:-}"
 RETRIES="${PLEXUS_HEALTH_RETRIES:-30}"
 
 echo "→ deploying $IMAGE"
 echo "  host:   $HOST"
 echo "  dir:    $APP_DIR"
-echo "  health: $HEALTH_URL"
+echo "  health: ${HEALTH_URL:-<resolved on host from platform.env>}"
 
 # Everything below runs on the host. Args are passed positionally (no fragile
 # remote-env forwarding); the heredoc is quoted so it is not expanded locally.
@@ -44,16 +45,29 @@ ssh -o StrictHostKeyChecking=accept-new "$HOST" bash -seuo pipefail -- \
 APP_DIR="$1"; IMAGE="$2"; HEALTH_URL="$3"; RETRIES="$4"
 cd "$APP_DIR"
 
+# Compose env-file wiring: --env-file disables the implicit .env lookup, so
+# both single-writer files are passed explicitly — .env (this verb's image ref)
+# and platform.env (provisioning's bindings, § 7.2 PLX). A host provisioned
+# before platform.env existed falls back to plain compose.
+if [ -f platform.env ]; then
+  dc() { docker compose --env-file .env --env-file platform.env "$@"; }
+  . ./platform.env
+else
+  dc() { docker compose "$@"; }
+fi
+[ -n "$HEALTH_URL" ] || HEALTH_URL="http://127.0.0.1:${PLEXUS_APP_PORT:-3000}/healthz"
+echo "  health: $HEALTH_URL"
+
 # Reality is the source of truth: read the currently-live image for rollback.
 PREV_IMAGE=""
-CID="$(docker compose ps -q web 2>/dev/null || true)"
+CID="$(dc ps -q web 2>/dev/null || true)"
 [ -n "$CID" ] && PREV_IMAGE="$(docker inspect --format '{{.Config.Image}}' "$CID" 2>/dev/null || true)"
 echo "  previous: ${PREV_IMAGE:-<none>}"
 
 up() {  # $1 = image ref
-  echo "IMAGE=$1" > .env   # reproducibility cache for a manual `docker compose up`
-  IMAGE="$1" docker compose pull web
-  IMAGE="$1" docker compose up -d web
+  echo "IMAGE=$1" > .env   # reproducibility cache for a manual compose up
+  IMAGE="$1" dc pull web
+  IMAGE="$1" dc up -d web
 }
 
 healthy() {
@@ -67,14 +81,14 @@ healthy() {
 # Pull → migrate (idempotent; runs only if compose.yaml declares it) → up.
 # A migrate failure aborts before `up`, so the previous release keeps serving.
 echo "IMAGE=$IMAGE" > .env
-IMAGE="$IMAGE" docker compose pull web
+IMAGE="$IMAGE" dc pull web
 # `compose run` targets the service regardless of its profile; the --profile
 # flag is only needed for the existence check, since `config --services`
 # hides profiled services by default.
-if IMAGE="$IMAGE" docker compose --profile migrate config --services 2>/dev/null | grep -qx migrate; then
-  IMAGE="$IMAGE" docker compose run --rm migrate
+if IMAGE="$IMAGE" dc --profile migrate config --services 2>/dev/null | grep -qx migrate; then
+  IMAGE="$IMAGE" dc run --rm migrate
 fi
-IMAGE="$IMAGE" docker compose up -d web
+IMAGE="$IMAGE" dc up -d web
 
 if healthy; then
   echo "✓ $IMAGE is live and healthy"
