@@ -1,0 +1,63 @@
+name: deploy
+
+# Reusable deploy for Plexus apps. Thin wrapper that mounts the stateless deploy
+# verb (scripts/deploy.sh in this repo) on the push event; the tenant supplies
+# the host + SSH key. Apps reference it after ci:
+#
+#   deploy:
+#     needs: ci
+#     if: github.ref == 'refs/heads/main'
+#     uses: plexus-ms/itops/.github/workflows/deploy.yml@v1
+#     with:
+#       app: plexus-website
+#       image-ref: ${{ needs.ci.outputs.image-ref }}
+#       host: deploy@<your-host>
+#     secrets:
+#       ssh-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+on:
+  workflow_call:
+    inputs:
+      app:
+        required: true
+        type: string
+      image-ref:
+        description: Full image ref to deploy (name:tag), e.g. ci's output.
+        required: true
+        type: string
+      host:
+        description: SSH target, e.g. deploy@1.2.3.4.
+        required: true
+        type: string
+      health-url:
+        description: Healthcheck URL polled on the host. Defaults to the § 6 PLX path.
+        required: false
+        type: string
+        default: ''
+    secrets:
+      ssh-key:
+        description: Private key authorized as the deploy user on the host.
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          repository: plexus-ms/itops
+          ref: ${{ github.job_workflow_sha }}
+      - name: Load SSH key
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          eval "$(ssh-agent -s)"
+          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
+          echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
+          printf '%s\n' "${{ secrets.ssh-key }}" | ssh-add -
+      - name: Deploy
+        env:
+          PLEXUS_HEALTH_URL: ${{ inputs.health-url }}
+        run: bash scripts/deploy.sh '${{ inputs.host }}' '${{ inputs.app }}' '${{ inputs.image-ref }}'
