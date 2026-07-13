@@ -19,17 +19,20 @@
 # No persistent state, no daemon, no UI, no reconciliation loop.
 #
 # Degradation test — hand-runnable with no extra machinery:
-#   ./deploy.sh deploy@1.2.3.4 plexus-website ghcr.io/org/plexus-website:<sha>
+#   ./deploy.sh deploy@1.2.3.4 plexus website ghcr.io/org/website:<sha>
 #
 set -euo pipefail
 
-HOST="${1:?usage: deploy.sh <ssh-host> <app> <image-ref>}"
-APP="${2:?usage: deploy.sh <ssh-host> <app> <image-ref>}"
-IMAGE="${3:?usage: deploy.sh <ssh-host> <app> <image-ref>}"
+USAGE="usage: deploy.sh <ssh-host> <tenant> <app> <image-ref>"
+HOST="${1:?$USAGE}"
+TENANT="${2:?$USAGE}"
+APP="${3:?$USAGE}"
+IMAGE="${4:?$USAGE}"
 
-# Overridable knobs (sane defaults for the stateless-app profile). An empty
+# Overridable knobs (sane defaults for the stateless-app profile). The app dir
+# mirrors the deploy playbook's layout: <deploy root>/<tenant>/<app>. An empty
 # HEALTH_URL is resolved on the host from platform.env's PLEXUS_APP_PORT.
-APP_DIR="${PLEXUS_APP_DIR:-/opt/stacks/$APP}"
+APP_DIR="${PLEXUS_APP_DIR:-/opt/stacks/$TENANT/$APP}"
 HEALTH_URL="${PLEXUS_HEALTH_URL:-}"
 RETRIES="${PLEXUS_HEALTH_RETRIES:-30}"
 
