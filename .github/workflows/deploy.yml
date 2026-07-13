@@ -7,7 +7,7 @@ name: deploy
 #   deploy:
 #     needs: ci
 #     if: github.ref == 'refs/heads/main'
-#     uses: plexus-ms/ci-cd/.github/workflows/deploy.yml@v0.5
+#     uses: plexus-ms/ci-cd/.github/workflows/deploy.yml@0.22.0
 #     with:
 #       tenant: plexus
 #       app: website
