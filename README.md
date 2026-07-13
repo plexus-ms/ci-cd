@@ -1,1 +1,1 @@
-# § 8 PLX – plexus-ms/ci-cd
+# plexus-ms/ci-cd (§ 8 PLX)

@@ -7,7 +7,7 @@ name: deploy
 #   deploy:
 #     needs: ci
 #     if: github.ref == 'refs/heads/main'
-#     uses: plexus-ms/itops/.github/workflows/deploy.yml@v1
+#     uses: plexus-ms/ci-cd/.github/workflows/deploy.yml@v0.2
 #     with:
 #       app: plexus-website
 #       image-ref: ${{ needs.ci.outputs.image-ref }}
@@ -45,10 +45,17 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Serialize deploys per app+host: at most one running and one pending run
+    # per group, and GitHub replaces the pending run with the newest — so the
+    # newest commit always deploys last. Never cancels a mid-flight deploy
+    # (cancelling between migrate and up would strand the host).
+    concurrency:
+      group: deploy-${{ inputs.app }}-${{ inputs.host }}
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7
         with:
-          repository: plexus-ms/itops
+          repository: plexus-ms/ci-cd
           ref: ${{ github.job_workflow_sha }}
       - name: Load SSH key
         run: |
