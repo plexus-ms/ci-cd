@@ -40,8 +40,11 @@ echo "  health: ${HEALTH_URL:-<resolved on host from platform.env>}"
 
 # Everything below runs on the host. Args are passed positionally (no fragile
 # remote-env forwarding); the heredoc is quoted so it is not expanded locally.
+# ssh flattens its argv into one space-joined string, so each arg is %q-quoted
+# to survive the remote shell's re-parsing — an empty arg would vanish otherwise.
 ssh -o StrictHostKeyChecking=accept-new "$HOST" bash -seuo pipefail -- \
-  "$APP_DIR" "$IMAGE" "$HEALTH_URL" "$RETRIES" <<'REMOTE'
+  "$(printf '%q' "$APP_DIR")" "$(printf '%q' "$IMAGE")" \
+  "$(printf '%q' "$HEALTH_URL")" "$(printf '%q' "$RETRIES")" <<'REMOTE'
 APP_DIR="$1"; IMAGE="$2"; HEALTH_URL="$3"; RETRIES="$4"
 cd "$APP_DIR"
 

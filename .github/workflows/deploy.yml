@@ -7,7 +7,7 @@ name: deploy
 #   deploy:
 #     needs: ci
 #     if: github.ref == 'refs/heads/main'
-#     uses: plexus-ms/ci-cd/.github/workflows/deploy.yml@v0.3
+#     uses: plexus-ms/ci-cd/.github/workflows/deploy.yml@v0.4
 #     with:
 #       app: plexus-website
 #       image-ref: ${{ needs.ci.outputs.image-ref }}
