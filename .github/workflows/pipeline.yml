@@ -1,0 +1,59 @@
+name: plexus-pipeline
+
+# Reusable per-app pipeline (§ 8.2 PLX): check → test → build+push (ci.yml),
+# then deploy (deploy.yml). One non-matrixed unit so ci's image-ref output can
+# feed deploy — matrixed jobs can't share outputs. The tenant matrixes over
+# THIS, one leg per changed app.
+
+on:
+  workflow_call:
+    inputs:
+      tenant:
+        required: true
+        type: string
+      app:
+        required: true
+        type: string
+      build:
+        description: Build and push an image (true on environment-branch pushes).
+        required: false
+        type: boolean
+        default: false
+      deploy:
+        description: Deploy after a successful build (true on the environment branch).
+        required: false
+        type: boolean
+        default: false
+      host:
+        description: SSH target, e.g. deploy@1.2.3.4 (from the tenant's DEPLOY_HOST var).
+        required: false
+        type: string
+        default: ''
+    secrets:
+      ssh-key:
+        description: Private key authorized as the deploy user on the host.
+        required: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  ci:
+    uses: plexus-ms/ci-cd/.github/workflows/ci.yml@0.23.0
+    with:
+      app: ${{ inputs.app }}
+      build: ${{ inputs.build }}
+
+  deploy:
+    needs: ci
+    # Never deploy without a fresh build (no stale image on PRs/develop).
+    if: ${{ inputs.deploy && inputs.build }}
+    uses: plexus-ms/ci-cd/.github/workflows/deploy.yml@0.23.0
+    with:
+      tenant: ${{ inputs.tenant }}
+      app: ${{ inputs.app }}
+      image-ref: ${{ needs.ci.outputs.image-ref }}
+      host: ${{ inputs.host }}
+    secrets:
+      ssh-key: ${{ secrets.ssh-key }}
