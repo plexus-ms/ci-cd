@@ -92,7 +92,10 @@ IMAGE="$IMAGE" dc pull web
 # flag is only needed for the existence check, since `config --services`
 # hides profiled services by default.
 if IMAGE="$IMAGE" dc --profile migrate config --services 2>/dev/null | grep -qx migrate; then
-  IMAGE="$IMAGE" dc run --rm migrate
+  # -T: never attach stdin — this script itself arrives on stdin (ssh heredoc),
+  # and an attached migrate container would swallow the remaining lines,
+  # silently skipping `up` and the health poll (plexus-ms/ci-cd#1).
+  IMAGE="$IMAGE" dc run -T --rm migrate
 fi
 IMAGE="$IMAGE" dc up -d web
 
