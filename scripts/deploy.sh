@@ -92,7 +92,11 @@ IMAGE="$IMAGE" dc pull web
 # flag is only needed for the existence check, since `config --services`
 # hides profiled services by default.
 if IMAGE="$IMAGE" dc --profile migrate config --services 2>/dev/null | grep -qx migrate; then
-  IMAGE="$IMAGE" dc run --rm migrate
+  # stdin MUST be /dev/null: this whole script arrives on ssh's stdin, and
+  # `compose run` is interactive by default — it would swallow the remaining
+  # script text, ending the deploy after migrate with exit 0 (silent no-op:
+  # `up -d web` and the health poll never run).
+  IMAGE="$IMAGE" dc run --rm migrate </dev/null
 fi
 IMAGE="$IMAGE" dc up -d web
 
