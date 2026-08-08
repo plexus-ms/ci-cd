@@ -29,7 +29,7 @@ on:
       build-args:
         description: >-
           Extra docker build-args, one KEY=value per line. Appended after the
-          standard APP/NODE_VERSION args (e.g. `SOURCE_COMMIT=${{ github.sha }}`
+          standard APP/NODE_VERSION args (e.g. SOURCE_COMMIT=<git sha>
           for a /health commit check).
         required: false
         type: string
