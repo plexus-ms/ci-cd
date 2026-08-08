@@ -28,6 +28,17 @@ if [ -z "$FROM" ] || [ "$FROM" = "0000000000000000000000000000000000000000" ] \
   exit 0
 fi
 
+# Workspace-global inputs feed every app's build: the lockfile pins each app's
+# dependency tree, root manifests/toolchain shape every install. pnpm's changed
+# filter only sees files INSIDE project dirs, so a lockfile-only change (the
+# shape of most Renovate bumps) would otherwise skip every build/deploy and let
+# the environment drift behind the branch.
+GLOBALS='^(pnpm-lock\.yaml|pnpm-workspace\.yaml|package\.json|turbo\.json|mise\.toml|\.npmrc|\.node-version)$'
+if git diff --name-only "$FROM" "$TO" | grep -Eq "$GLOBALS"; then
+  all_apps
+  exit 0
+fi
+
 # pnpm does the graph work (`...` pulls in dependents); we only intersect its
 # output with apps/* — `ls --parseable` prints absolute paths, so strip the repo
 # root, keep apps/<name>, and de-dup.
