@@ -26,6 +26,14 @@ on:
         required: false
         type: string
         default: ''
+      build-args:
+        description: >-
+          Extra docker build-args, one KEY=value per line. Appended after the
+          standard APP/NODE_VERSION args (e.g. `SOURCE_COMMIT=${{ github.sha }}`
+          for a /health commit check).
+        required: false
+        type: string
+        default: ''
     outputs:
       image-ref:
         description: Full image ref that was built (name:sha).
@@ -79,5 +87,6 @@ jobs:
           build-args: |
             APP=${{ inputs.app }}
             NODE_VERSION=${{ env.NODE_VERSION }}
+            ${{ inputs.build-args }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
