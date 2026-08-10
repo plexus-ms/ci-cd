@@ -19,7 +19,10 @@ set -euo pipefail
 FROM="${1:-}"
 TO="${2:-HEAD}"
 
-all_apps() { for d in apps/*/; do [ -d "$d" ] && basename "$d"; done; }
+# "All apps" = workspace members only (a package.json marks one — same set the
+# pnpm filter path can ever return). Bare dirs under apps/ (e.g. a compose-only
+# prod mirror) are not buildable and must not enter the CI matrix.
+all_apps() { for d in apps/*/; do [ -f "$d/package.json" ] && basename "$d"; done; }
 
 # No usable base ref → deploy everything.
 if [ -z "$FROM" ] || [ "$FROM" = "0000000000000000000000000000000000000000" ] \
