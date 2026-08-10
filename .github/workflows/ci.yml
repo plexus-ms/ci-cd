@@ -26,6 +26,13 @@ on:
         required: false
         type: string
         default: ''
+      runner:
+        description: >-
+          Runner label for all jobs (e.g. `self-hosted` for a tenant-owned
+          runner — GitHub bills minutes only on GitHub-hosted runners).
+        required: false
+        type: string
+        default: ubuntu-latest
       build-args:
         description: >-
           Extra docker build-args, one KEY=value per line. Appended after the
@@ -45,7 +52,7 @@ permissions:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner }}
     steps:
       - uses: actions/checkout@v7
       - uses: jdx/mise-action@v4
@@ -58,7 +65,7 @@ jobs:
   build:
     needs: verify
     if: ${{ inputs.build }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner }}
     outputs:
       image-ref: ${{ steps.meta.outputs.image-ref }}
     steps:

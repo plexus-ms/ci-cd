@@ -19,6 +19,13 @@ name: deploy
 on:
   workflow_call:
     inputs:
+      runner:
+        description: >-
+          Runner label for all jobs (e.g. `self-hosted` for a tenant-owned
+          runner — GitHub bills minutes only on GitHub-hosted runners).
+        required: false
+        type: string
+        default: ubuntu-latest
       tenant:
         description: Tenant id — first segment of the app dir (/opt/stacks/<tenant>/<app>).
         required: true
@@ -49,7 +56,7 @@ permissions:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner }}
     # Serialize deploys per app+host: at most one running and one pending run
     # per group, and GitHub replaces the pending run with the newest — so the
     # newest commit always deploys last. Never cancels a mid-flight deploy
