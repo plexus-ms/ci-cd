@@ -29,6 +29,13 @@ on:
         required: false
         type: string
         default: ''
+      runner:
+        description: >-
+          Runner label for all jobs (e.g. `self-hosted` for a tenant-owned
+          runner — GitHub bills minutes only on GitHub-hosted runners).
+        required: false
+        type: string
+        default: ubuntu-latest
     secrets:
       ssh-key:
         description: Private key authorized as the deploy user on the host.
@@ -40,20 +47,22 @@ permissions:
 
 jobs:
   ci:
-    uses: plexus-ms/ci-cd/.github/workflows/ci.yml@0.28.0
+    uses: plexus-ms/ci-cd/.github/workflows/ci.yml@0.31.0
     with:
       app: ${{ inputs.app }}
       build: ${{ inputs.build }}
+      runner: ${{ inputs.runner }}
 
   deploy:
     needs: ci
     # Never deploy without a fresh build (no stale image on PRs/develop).
     if: ${{ inputs.deploy && inputs.build }}
-    uses: plexus-ms/ci-cd/.github/workflows/deploy.yml@0.28.0
+    uses: plexus-ms/ci-cd/.github/workflows/deploy.yml@0.31.0
     with:
       tenant: ${{ inputs.tenant }}
       app: ${{ inputs.app }}
       image-ref: ${{ needs.ci.outputs.image-ref }}
       host: ${{ inputs.host }}
+      runner: ${{ inputs.runner }}
     secrets:
       ssh-key: ${{ secrets.ssh-key }}
