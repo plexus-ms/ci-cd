@@ -2,7 +2,10 @@ name: deploy
 
 # Reusable deploy for Plexus apps. Thin wrapper that mounts the stateless deploy
 # verb (scripts/deploy.sh in this repo) on the push event; the tenant supplies
-# the host + SSH key. Apps reference it after ci:
+# the host + SSH key. The caller is the app's SOURCE repo (§ 5.2 PLX) — an app
+# repo after ci, or the platform repo for a third-party app — because the verb
+# reads apps/<app>/{docker/compose.yaml,env.schema} from the checkout and
+# places them on the host. Apps reference it after ci:
 #
 #   deploy:
 #     needs: ci
@@ -15,6 +18,8 @@ name: deploy
 #       host: deploy@<your-host>
 #     secrets:
 #       ssh-key: ${{ secrets.DEPLOY_SSH_KEY }}
+#
+# A third-party app pins its image in compose.yaml and omits image-ref.
 
 on:
   workflow_call:
@@ -34,15 +39,20 @@ on:
         required: true
         type: string
       image-ref:
-        description: Full image ref to deploy (name:tag), e.g. ci's output.
-        required: true
+        description: >-
+          Full image ref to deploy (name:tag), e.g. ci's output. Empty for a
+          third-party app whose compose.yaml pins its own image.
+        required: false
         type: string
+        default: ''
       host:
         description: SSH target, e.g. deploy@1.2.3.4.
         required: true
         type: string
       health-url:
-        description: Healthcheck URL polled on the host. Defaults to /healthz on the app's platform.env port.
+        description: >-
+          Healthcheck URL polled on the host. Defaults to the app's readiness
+          path (/healthz, or its plexus.healthz label) on its platform.env port.
         required: false
         type: string
         default: ''
@@ -65,10 +75,15 @@ jobs:
       group: deploy-${{ inputs.tenant }}-${{ inputs.app }}-${{ inputs.host }}
       cancel-in-progress: false
     steps:
+      # The caller's repo (the app's source repo) — cwd for the verb, which
+      # reads apps/<app>/ relative here. Same SHA the image was built from.
+      - uses: actions/checkout@v7
+      # The verb itself lives in ci-cd; pin it to the exact workflow version.
       - uses: actions/checkout@v7
         with:
           repository: plexus-ms/ci-cd
           ref: ${{ github.job_workflow_sha }}
+          path: .plexus-ci-src
       - name: Load SSH key
         run: |
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
@@ -79,4 +94,4 @@ jobs:
       - name: Deploy
         env:
           PLEXUS_HEALTH_URL: ${{ inputs.health-url }}
-        run: bash scripts/deploy.sh '${{ inputs.host }}' '${{ inputs.tenant }}' '${{ inputs.app }}' '${{ inputs.image-ref }}'
+        run: bash .plexus-ci-src/scripts/deploy.sh '${{ inputs.host }}' '${{ inputs.tenant }}' '${{ inputs.app }}' '${{ inputs.image-ref }}'

@@ -9,6 +9,13 @@
 #
 #   ./changed-apps.sh <from-sha> [<to-sha>]   # <to> defaults to HEAD
 #
+# Two repo shapes (§ 5.2 PLX), told apart by the presence of a pnpm workspace:
+#   - an APP repo is a pnpm workspace; pnpm walks its graph so dependents of a
+#     changed package count as changed;
+#   - the PLATFORM repo hosts third-party apps as bare apps/<name>/ compose
+#     dirs with no workspace at all — there an app is "changed" exactly when a
+#     file under its own dir changed.
+#
 # Fallback — print ALL apps — when <from> is empty, all-zeros, or unknown to git
 # (first push, force-push, new branch): pnpm's range filter errors on a missing
 # left ref, so "can't diff" degrades to "consider everything changed", the safe
@@ -19,15 +26,36 @@ set -euo pipefail
 FROM="${1:-}"
 TO="${2:-HEAD}"
 
-# "All apps" = workspace members only (a package.json marks one — same set the
-# pnpm filter path can ever return). Bare dirs under apps/ (e.g. a compose-only
-# prod mirror) are not buildable and must not enter the CI matrix.
-all_apps() { for d in apps/*/; do [ -f "$d/package.json" ] && basename "$d"; done; }
+WORKSPACE=0
+[ -f pnpm-workspace.yaml ] && WORKSPACE=1
+
+# "All apps": in a workspace, its members only (a package.json marks one — the
+# same set the pnpm filter path can ever return; a bare dir is not buildable and
+# must not enter the CI matrix). Without a workspace, every apps/<name>/ that
+# carries a compose file is a deployable third-party app.
+all_apps() {
+  for d in apps/*/; do
+    [ -d "$d" ] || continue
+    if [ "$WORKSPACE" = 1 ]; then
+      [ -f "$d/package.json" ] && basename "$d"
+    else
+      { [ -f "$d/docker/compose.yaml" ] || [ -f "$d/compose.yaml" ]; } && basename "$d"
+    fi
+  done
+  return 0
+}
 
 # No usable base ref → deploy everything.
 if [ -z "$FROM" ] || [ "$FROM" = "0000000000000000000000000000000000000000" ] \
    || ! git rev-parse --verify --quiet "$FROM^{commit}" >/dev/null; then
   all_apps
+  exit 0
+fi
+
+# Platform repo: plain path diff, intersected with the deployable set.
+if [ "$WORKSPACE" = 0 ]; then
+  comm -12 <(all_apps | sort -u) \
+           <(git diff --name-only "$FROM" "$TO" | awk -F/ '$1 == "apps" && NF >= 3 { print $2 }' | sort -u)
   exit 0
 fi
 
