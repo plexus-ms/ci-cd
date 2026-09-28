@@ -1,0 +1,22 @@
+amends "package://github.com/jdx/hk/releases/download/v1.48.0/hk@1.48.0#/Config.pkl"
+
+hooks {
+  ["pre-commit"] {
+    steps {
+      ["check"] {
+        glob = List("scripts/*.sh")
+        check = "mise :check"
+      }
+    }
+  }
+  ["pre-push"] {
+    steps {
+      ["check"] {
+        check = "mise :check"
+      }
+      ["test"] {
+        check = "mise :test"
+      }
+    }
+  }
+}
