@@ -4,8 +4,8 @@ name: deploy
 # verb (scripts/deploy.sh in this repo) on the push event; the tenant supplies
 # the host + SSH key. The caller is the app's SOURCE repo (§ 5.2 PLX) — an app
 # repo after ci, or the platform repo for a third-party app — because the verb
-# reads apps/<app>/{docker/compose.yaml,env.schema} from the checkout and
-# places them on the host. Apps reference it after ci:
+# reads apps/<app>/docker/compose.yaml from the checkout and renders it onto
+# the host with the image ref pinned. Apps reference it after ci:
 #
 #   deploy:
 #     needs: ci
@@ -52,7 +52,8 @@ on:
       health-url:
         description: >-
           Healthcheck URL polled on the host. Defaults to the app's readiness
-          path (/healthz, or its plexus.healthz label) on its platform.env port.
+          path (/healthz, or its plexus.healthz label) on its loopback port
+          (PLEXUS_LOOPBACK_PORT in the app dir's .env).
         required: false
         type: string
         default: ''
