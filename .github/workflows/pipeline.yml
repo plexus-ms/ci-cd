@@ -47,7 +47,7 @@ permissions:
 
 jobs:
   ci:
-    uses: plexus-ms/ci-cd/.github/workflows/ci.yml@0.33.0
+    uses: plexus-ms/ci-cd/.github/workflows/ci.yml@0.34.0
     with:
       app: ${{ inputs.app }}
       build: ${{ inputs.build }}
@@ -57,7 +57,7 @@ jobs:
     needs: ci
     # Never deploy without a fresh build (no stale image on PRs/develop).
     if: ${{ inputs.deploy && inputs.build }}
-    uses: plexus-ms/ci-cd/.github/workflows/deploy.yml@0.33.0
+    uses: plexus-ms/ci-cd/.github/workflows/deploy.yml@0.34.0
     with:
       tenant: ${{ inputs.tenant }}
       app: ${{ inputs.app }}
