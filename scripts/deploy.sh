@@ -7,6 +7,10 @@
 #         → swap the file into place → docker compose up -d → poll the readiness path
 #         → on failure: restore the previous file, docker compose up -d (no pull), exit non-zero
 #
+# pull and up act on every service the file declares outside a profile — the
+# app service, its data services, a worker added with the job queue (§ 5.2
+# PLX) — exactly like the configure playbook's `up -d`.
+#
 # Run from a checkout of the app's SOURCE repo (§ 5.2 PLX): an app repo's CI,
 # or the platform repo for third-party software the tenant merely operates.
 # The app's run shape — apps/<app>/docker/compose.yaml (or apps/<app>/compose.yaml)
@@ -24,9 +28,10 @@
 # command, `profiles: ["migrate"]` so plain `up` never starts it). The host
 # needs nothing but docker.
 #
-# The `web` service name targeted below is the app-contract convention,
-# shipped by preset-app-nextjs's compose.yaml.jinja; a third-party compose file
-# names its app service `web` as well.
+# The `web` service is the app service by convention, shipped by
+# preset-app-nextjs's compose.yaml.jinja; a third-party compose file names its
+# app service `web` as well. It is the one the verb reads the live image and
+# the readiness path from — every other service rides along with pull and up.
 #
 # "Which version is live" is the running container's image, queried from
 # `docker` (reality) — never a file we own. No persistent state, no daemon,
@@ -153,8 +158,9 @@ healthy() {
 # Pull → migrate (idempotent; runs only if compose.yaml declares it), both
 # against the STAGED run shape: a failure here leaves the host exactly as it
 # was — old compose file, old containers — and the previous release keeps
-# serving.
-dci pull web
+# serving. Every non-profiled service is pulled, not just `web`: a changed
+# worker or data-service image must be in the cache before the swap.
+dci pull
 # `compose run` targets the service regardless of its profile; the --profile
 # flag is only needed for the existence check, since `config --services`
 # hides profiled services by default.
@@ -174,7 +180,7 @@ mv "$IN/compose.yaml" compose.yaml
 
 # No pull here: the new image was pulled above, the previous one is in the
 # host's cache — a rollback must never depend on the registry answering.
-dc up -d web
+dc up -d
 t0=$SECONDS
 if healthy; then
   echo "✓ $(dc ps -q web | head -1 | xargs -r docker inspect --format '{{.Config.Image}}') is live and healthy"
@@ -190,7 +196,7 @@ dc logs --no-color --tail 50 web 2>&1 | sed 's/^/    /' || true
 if [ "$HAD_PREV" = 1 ] && ! cmp -s compose.yaml "$IN/compose.yaml.prev"; then
   cp -p "$IN/compose.yaml.prev" compose.yaml
   echo "↩ rolling back to ${PREV_IMAGE:-the previous compose.yaml}"
-  if dc up -d web && healthy; then
+  if dc up -d && healthy; then
     echo "✓ rolled back to ${PREV_IMAGE:-the previous compose.yaml}"
   else
     echo "✗ rollback also unhealthy — manual intervention needed"
