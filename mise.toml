@@ -1,9 +1,8 @@
-# ci-cd is a plexus-ms repo and eats the initiative's own cooking (Manual, "The
-# repos"): tools pinned here, verbs as mise tasks, checks wired through hk.
+# ci-cd is a plexus-ms repo and eats the initiative's own cooking (§ 1.8 PLX): tools pinned here, verbs as mise tasks, checks wired through hk.
 # The verb safety baseline — strict mode and shellcheck-clean — is enforced
-# mechanically here, never on the honor system (Manual, "Artifact layering").
+# mechanically here, never on the honor system (PLX-CI, "Maintaining").
 
-# Verbs are asked as `mise :verb` like in every Plexus repo (§ 4.1 PLX); that
+# Verbs are asked as `mise :verb` like in every Plexus repo (§ 2 PLX-Repo); that
 # form needs the root marker even without sub-projects.
 monorepo_root = true
 # mise no longer walks the tree for project configs; the root is the only one.
@@ -17,7 +16,7 @@ shellcheck = "0.11.0"        # the verbs' static check
 [hooks]
 postinstall = "hk install --mise"
 
-# Contract verbs (§ 5.1 PLX) — the ones a bash-verb repo has no use for exist
+# Contract verbs (§ 3 PLX-Repo) — the ones a bash-verb repo has no use for exist
 # and pass as documented no-ops.
 
 [tasks.dev]

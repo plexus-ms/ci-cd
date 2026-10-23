@@ -2,7 +2,7 @@ name: deploy
 
 # Reusable deploy for Plexus apps. Thin wrapper that mounts the stateless deploy
 # verb (scripts/deploy.sh in this repo) on the push event; the tenant supplies
-# the host + SSH key. The caller is the app's SOURCE repo (§ 5.2 PLX) — an app
+# the host + SSH key. The caller is the app's SOURCE repo (§ 2 PLX-App) — an app
 # repo after ci, or the platform repo for a third-party app — because the verb
 # reads apps/<app>/docker/compose.yaml from the checkout and renders it onto
 # the host with the image ref pinned. Apps reference it after ci:

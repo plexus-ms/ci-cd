@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
-# Plexus deploy verb — § 8.4 PLX. A stateless procedure, not a system:
+# Plexus deploy verb — PLX-Deploy. A stateless procedure, not a system:
 #
-#   render compose.yaml from the invoking checkout, pinning the image ref (§ 5.2, § 5.3 PLX)
+#   render compose.yaml from the invoking checkout, pinning the image ref (§ 2 and § 3 PLX-App)
 #   → ssh → docker compose pull → compose run --rm migrate (if declared), both against the staged file
 #         → swap the file into place → docker compose up -d → poll the readiness path
 #         → on failure: restore the previous file, docker compose up -d (no pull), exit non-zero
@@ -11,14 +11,14 @@
 # app service, its data services, a worker added with the job queue (§ 5.2
 # PLX) — exactly like the configure playbook's `up -d`.
 #
-# Run from a checkout of the app's SOURCE repo (§ 5.2 PLX): an app repo's CI,
+# Run from a checkout of the app's SOURCE repo (§ 2 PLX-App): an app repo's CI,
 # or the platform repo for third-party software the tenant merely operates.
 # The app's run shape — apps/<app>/docker/compose.yaml (or apps/<app>/compose.yaml)
 # — is read from there, rendered with the concrete image ref in place of
 # ${PLEXUS_DEPLOYMENT_IMAGE}, staged on the host, and swapped into place only
 # once pull and migrate have succeeded, so the compose file on the host always
 # names the image it serves — and a failed deploy leaves the host exactly as
-# it was. Three files in the app dir, one writer each (§ 7.2 PLX): the
+# it was. Three files in the app dir, one writer each (PLX-Secrets): the
 # configure playbook owns .env and .env.secret, this verb owns compose.yaml.
 # Compose reads .env implicitly, so every invocation here, in the playbook's
 # rotation handler, and by a human is a bare `docker compose …`.
@@ -55,13 +55,13 @@ IMAGE="${4?$USAGE}"
 # Overridable knobs (sane defaults for the stateless-app profile). The app dir
 # mirrors the configure playbook's layout: <deploy root>/<tenant>/<app>. An
 # empty HEALTH_URL is resolved on the host from .env's PLEXUS_LOOPBACK_PORT
-# and the app's `plexus.healthz` label (§ 5.5 PLX), defaulting to /healthz.
+# and the app's `plexus.healthz` label (§ 5 PLX-App), defaulting to /healthz.
 APP_DIR="${PLEXUS_APP_DIR:-/opt/stacks/$TENANT/$APP}"
 APP_SRC="${PLEXUS_APP_SRC:-apps/$APP}"
 HEALTH_URL="${PLEXUS_HEALTH_URL:-}"
 RETRIES="${PLEXUS_HEALTH_RETRIES:-30}"
 
-# The run shape, from the invoking checkout (§ 5.2 PLX).
+# The run shape, from the invoking checkout (§ 2 PLX-App).
 COMPOSE=""
 for candidate in "$APP_SRC/docker/compose.yaml" "$APP_SRC/compose.yaml"; do
   [ -f "$candidate" ] && { COMPOSE="$candidate"; break; }
@@ -75,7 +75,7 @@ echo "  compose: $COMPOSE"
 echo "  health:  ${HEALTH_URL:-<resolved on host>}"
 
 # Render: pin the image ref in place of the ${PLEXUS_DEPLOYMENT_IMAGE} placeholder
-# (§ 5.3 PLX), with or without a `:?message` suffix. One literal substitution,
+# (§ 3 PLX-App), with or without a `:?message` suffix. One literal substitution,
 # nothing else in the file is touched. A first-party file without the
 # placeholder would silently ignore the ref, and a third-party file with one
 # would ship an empty image — both are errors here, never on the host.
@@ -84,7 +84,7 @@ trap 'rm -rf "$STAGE"' EXIT
 PLACEHOLDER='\$\{PLEXUS_DEPLOYMENT_IMAGE(:[^}]*)?\}'
 if [ -n "$IMAGE" ]; then
   grep -Eq "$PLACEHOLDER" "$COMPOSE" \
-    || { echo "✗ $COMPOSE does not reference \${PLEXUS_DEPLOYMENT_IMAGE} — an image ref was given but nothing would use it (§ 5.3 PLX)" >&2; exit 2; }
+    || { echo "✗ $COMPOSE does not reference \${PLEXUS_DEPLOYMENT_IMAGE} — an image ref was given but nothing would use it (§ 3 PLX-App)" >&2; exit 2; }
   sed -E "s|$PLACEHOLDER|$IMAGE|g" "$COMPOSE" > "$STAGE/compose.yaml"
 else
   ! grep -Eq "$PLACEHOLDER" "$COMPOSE" \
@@ -131,7 +131,7 @@ CID="$(dc ps -q web 2>/dev/null | head -1 || true)"
 [ -n "$CID" ] && PREV_IMAGE="$(docker inspect --format '{{.Config.Image}}' "$CID" 2>/dev/null || true)"
 echo "  previous: ${PREV_IMAGE:-<none>}"
 
-# Readiness path: /healthz by contract (§ 5.5 PLX); a third-party image that
+# Readiness path: /healthz by contract (§ 5 PLX-App); a third-party image that
 # cannot serve it declares its own via the `plexus.healthz` label, read from
 # the running container — reality, not a parse of the compose file.
 resolve_health_url() {
@@ -144,7 +144,7 @@ resolve_health_url() {
   echo "  health:   $HEALTH_URL"
 }
 
-# Deadline-based poll (§ 8.4 PLX): each attempt is bounded, so a container
+# Deadline-based poll (PLX-Deploy): each attempt is bounded, so a container
 # that accepts connections but never answers cannot hang the deploy.
 healthy() {
   resolve_health_url
@@ -189,7 +189,7 @@ fi
 echo "✗ healthcheck failed after $((SECONDS - t0))s — last lines from the app:"
 dc logs --no-color --tail 50 web 2>&1 | sed 's/^/    /' || true
 
-# Rollback (§ 8.4 PLX): the previous compose file — image pinned, so it is the
+# Rollback (PLX-Deploy): the previous compose file — image pinned, so it is the
 # combination that was actually serving. There is something to go back to when
 # the file changed with a container running; a first deploy, or a re-deploy of
 # the very same run shape, has no previous state and fails loudly instead.

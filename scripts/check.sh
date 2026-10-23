@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# The verb safety baseline (Manual, "Artifact layering"), checked mechanically:
+# The verb safety baseline (PLX-CI, "Maintaining"), checked mechanically:
 # every verb runs under strict mode and is shellcheck-clean. A remote heredoc
 # (`<<'REMOTE'` … `REMOTE`) is a script of its own that shellcheck would
 # otherwise see only as a string, so it is extracted and checked as one.

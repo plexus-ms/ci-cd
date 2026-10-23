@@ -1,6 +1,6 @@
 name: plexus-pipeline
 
-# Reusable per-app pipeline (§ 8.2 PLX): check → test → build+push (ci.yml),
+# Reusable per-app pipeline (§ 2 PLX-Train): check → test → build+push (ci.yml),
 # then deploy (deploy.yml). One non-matrixed unit so ci's image-ref output can
 # feed deploy — matrixed jobs can't share outputs. The tenant matrixes over
 # THIS, one leg per changed app.

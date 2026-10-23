@@ -56,9 +56,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: jdx/mise-action@v4
-      # CI's contract with the repo is the single `verify` verb (§ 8.5 PLX) —
+      # CI's contract with the repo is the single `verify` verb (PLX-CI) —
       # never the individual checks. The scope arg path-scopes verify to this
-      # app plus its dependency packages (§ 8.2 PLX); the trailing `...` is
+      # app plus its dependency packages (§ 2 PLX-Train); the trailing `...` is
       # turbo's dependency-inclusive filter, applied inside the verb.
       - run: mise verify "apps/${{ inputs.app }}..."
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Plexus changed-apps verb — § 8.2 PLX. Prints the deployable apps whose sources
+# Plexus changed-apps verb — § 2 PLX-Train. Prints the deployable apps whose sources
 # changed between two git refs, INCLUDING apps that depend on a changed workspace
 # package (a packages/ui change redeploys its dependents).
 #
@@ -9,7 +9,7 @@
 #
 #   ./changed-apps.sh <from-sha> [<to-sha>]   # <to> defaults to HEAD
 #
-# Two repo shapes (§ 5.2 PLX), told apart by the presence of a pnpm workspace:
+# Two repo shapes (§ 2 PLX-App), told apart by the presence of a pnpm workspace:
 #   - an APP repo is a pnpm workspace; pnpm walks its graph so dependents of a
 #     changed package count as changed;
 #   - the PLATFORM repo hosts third-party apps as bare apps/<name>/ compose
