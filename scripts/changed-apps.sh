@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Plexus changed-apps verb — § 2 PLX-Train. Prints the deployable apps whose sources
+# Plexus changed-apps verb — § 2 PLX-Release. Prints the deployable apps whose sources
 # changed between two git refs, INCLUDING apps that depend on a changed workspace
 # package (a packages/ui change redeploys its dependents).
 #

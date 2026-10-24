@@ -1,6 +1,6 @@
 name: plexus-changes
 
-# Reusable change-detection (§ 2 PLX-Train). Mounts the changed-apps verb on
+# Reusable change-detection (§ 2 PLX-Release). Mounts the changed-apps verb on
 # push/PR and emits the changed app set as a JSON array for a downstream matrix.
 # Logic lives in scripts/changed-apps.sh, never here — this wrapper only plumbs
 # event refs in and JSON out.
