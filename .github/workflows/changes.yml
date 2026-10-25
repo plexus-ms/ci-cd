@@ -15,6 +15,16 @@ on:
         required: false
         type: string
         default: ubuntu-latest
+      ci-ref:
+        description: >-
+          ci-cd ref (tag or SHA) to load the verb from. Only needed when this
+          workflow is called nested (caller → own reusable workflow → here):
+          there github.job_workflow_sha is empty and the run fails instead of
+          silently loading the verb from main. Pass the tag you pinned in
+          `uses:`.
+        required: false
+        type: string
+        default: ''
     outputs:
       apps:
         description: JSON array of changed app dir names (e.g. ["website"], or []).
@@ -35,10 +45,23 @@ jobs:
         with:
           fetch-depth: 0
       # The verb itself lives in ci-cd; pin it to the exact workflow version.
+      # github.job_workflow_sha is empty in nested reusable-workflow calls —
+      # checkout would then fall back to main, so require ci-ref instead.
+      - id: ci-ref
+        env:
+          CI_REF: ${{ inputs.ci-ref }}
+          JOB_WORKFLOW_SHA: ${{ github.job_workflow_sha }}
+        run: |
+          ref="${CI_REF:-$JOB_WORKFLOW_SHA}"
+          if [ -z "$ref" ]; then
+            echo "::error::github.job_workflow_sha is empty (nested reusable-workflow call) — pass the pinned ci-cd tag as input ci-ref"
+            exit 1
+          fi
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v7
         with:
           repository: plexus-ms/ci-cd
-          ref: ${{ github.job_workflow_sha }}
+          ref: ${{ steps.ci-ref.outputs.ref }}
           path: .plexus-ci-src
       - uses: jdx/mise-action@v4
       - id: refs
