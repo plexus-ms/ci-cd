@@ -1,29 +1,29 @@
-name: plexus-targets
+name: _deploy-targets
 
-# Reusable deploy-target lookup (§ 3 PLX-Platform). Mounts the deploy-targets
-# verb on a platform repo and emits {app: target} for the caller to index per
-# matrix leg. Logic lives in scripts/deploy-targets.sh, never here.
+# Mounts the deploy-targets verb (§ 3 PLX-Platform) on a platform repo and
+# emits {app: target} for the caller to index per matrix leg. Logic lives in
+# scripts/deploy-targets.sh, never here.
 
 on:
   workflow_call:
     inputs:
       runner:
         description: >-
-          Runner label for all jobs (e.g. `self-hosted` for a tenant-owned
-          runner — GitHub bills minutes only on GitHub-hosted runners).
+          Runner label for every job: GitHub's `ubuntu-latest`, or the label of a
+          runner the tenant owns (GitHub bills minutes only on its own runners).
         required: false
         type: string
         default: ubuntu-latest
     outputs:
       map:
         description: JSON object of app name → deploy target, for the apps whose inventory file names one.
-        value: ${{ jobs.lookup.outputs.map }}
+        value: ${{ jobs.deploy-targets.outputs.map }}
 
 permissions:
   contents: read
 
 jobs:
-  lookup:
+  deploy-targets:
     runs-on: ${{ inputs.runner }}
     outputs:
       map: ${{ steps.run.outputs.map }}

@@ -1,0 +1,45 @@
+name: _verify
+
+# Mounts the verify verb (§ 1 PLX-Delivery): perform every automated step that
+# ascertains code quality. One invocation of the contract verb, repo-wide or
+# scoped to one app and its dependencies; the incantations are the repo's own.
+
+on:
+  workflow_call:
+    inputs:
+      scope:
+        description: >-
+          Optional scope for the verb: an app and its dependency packages
+          (`apps/<app>...`, turbo's dependency-inclusive filter, applied
+          inside the verb). Empty verifies the whole repo.
+        required: false
+        type: string
+        default: ''
+      runner:
+        description: >-
+          Runner label for every job: GitHub's `ubuntu-latest`, or the label of a
+          runner the tenant owns (GitHub bills minutes only on its own runners).
+        required: false
+        type: string
+        default: ubuntu-latest
+      persistent:
+        description: >-
+          The runner keeps its disk between jobs (a runner the tenant owns):
+          caches then stay on the machine instead of round-tripping through
+          GitHub (§ 4 PLX-Delivery).
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jdx/mise-action@v4
+        with:
+          cache: ${{ !inputs.persistent }}
+      - run: mise verify ${{ inputs.scope }}

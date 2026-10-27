@@ -1,33 +1,20 @@
-name: deploy
+name: _deploy
 
-# Reusable deploy for Plexus apps. Thin wrapper that mounts the stateless deploy
-# verb (scripts/deploy.sh in this repo) on the push event; the tenant supplies
-# the host + SSH key. The caller is the app's SOURCE repo (§ 2 PLX-App) — an app
-# repo after ci, or the platform repo for a third-party app — because the verb
-# reads apps/<app>/docker/compose.yaml from the checkout and renders it onto
-# the host with the image ref pinned. Apps reference it after ci:
-#
-#   deploy:
-#     needs: ci
-#     if: github.ref == 'refs/heads/main'
-#     uses: plexus-ms/ci-cd/.github/workflows/deploy.yml@0.63.0
-#     with:
-#       tenant: plexus
-#       app: website
-#       image-ref: ${{ needs.ci.outputs.image-ref }}
-#       host: deploy@<your-host>
-#     secrets:
-#       ssh-key: ${{ secrets.DEPLOY_SSH_KEY }}
-#
-# A third-party app pins its image in compose.yaml and omits image-ref.
+# Mounts the deploy verb (§ 6 PLX-Delivery): launch a released artifact into
+# an execution environment. Logic lives in scripts/deploy.sh, never here; the
+# caller supplies the host and the SSH key. The caller is the app's SOURCE
+# repo, because the verb reads apps/<app>/docker/compose.yaml from the checkout
+# and renders it onto the host with the image ref pinned: an app repo's
+# _pipeline.yml after the release, or the platform repo's deploy.yml for a
+# third-party app, whose compose.yaml pins its own image (no image-ref).
 
 on:
   workflow_call:
     inputs:
       runner:
         description: >-
-          Runner label for all jobs (e.g. `self-hosted` for a tenant-owned
-          runner — GitHub bills minutes only on GitHub-hosted runners).
+          Runner label for every job: GitHub's `ubuntu-latest`, or the label of a
+          runner the tenant owns (GitHub bills minutes only on its own runners).
         required: false
         type: string
         default: ubuntu-latest
@@ -40,8 +27,8 @@ on:
         type: string
       image-ref:
         description: >-
-          Full image ref to deploy (name:tag), e.g. ci's output. Empty for a
-          third-party app whose compose.yaml pins its own image.
+          Full image ref to deploy (name:tag), the release's output. Empty for
+          a third-party app whose compose.yaml pins its own image.
         required: false
         type: string
         default: ''
@@ -96,3 +83,8 @@ jobs:
         env:
           PLEXUS_HEALTH_URL: ${{ inputs.health-url }}
         run: bash .plexus-ci-src/scripts/deploy.sh '${{ inputs.host }}' '${{ inputs.tenant }}' '${{ inputs.app }}' '${{ inputs.image-ref }}'
+      # A GitHub-hosted runner dies with the agent; a persistent one would keep
+      # it running, deploy key loaded, for every later job on the machine.
+      - name: Stop the SSH agent
+        if: ${{ always() }}
+        run: '[ -z "${SSH_AGENT_PID:-}" ] || ssh-agent -k'

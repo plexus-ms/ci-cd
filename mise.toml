@@ -1,6 +1,6 @@
 # ci-cd is a plexus-ms repo and eats the initiative's own cooking (§ 1.8 PLX): tools pinned here, verbs as mise tasks, checks wired through hk.
 # The verb safety baseline — strict mode and shellcheck-clean — is enforced
-# mechanically here, never on the honor system (PLX-CI, "Maintaining").
+# mechanically here, never on the honor system (PLX-Delivery, "Maintaining").
 
 # Verbs are asked as `mise :verb` like in every Plexus repo (§ 2 PLX-Repo); that
 # form needs the root marker even without sub-projects.
@@ -26,6 +26,10 @@ run = 'echo "dev: nothing to start in ci-cd"'
 [tasks.build]
 description = "No-op: bash verbs ship as source, referenced by tag"
 run = 'echo "build: nothing to build in ci-cd"'
+
+[tasks.verify]
+description = "Perform all steps that verify code quality: check, then test"
+run = ['mise run check', 'mise run test']
 
 [tasks.check]
 description = "Static checks: strict mode present and shellcheck clean, for every verb and the script each remote heredoc carries"

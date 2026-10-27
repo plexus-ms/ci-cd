@@ -1,30 +1,30 @@
-name: plexus-changes
+name: _changed-apps
 
-# Reusable change-detection (§ 2 PLX-Release). Mounts the changed-apps verb on
-# push/PR and emits the changed app set as a JSON array for a downstream matrix.
-# Logic lives in scripts/changed-apps.sh, never here — this wrapper only plumbs
-# event refs in and JSON out.
+# Mounts the changed-apps verb (§ 3 PLX-Delivery) on a push and emits the
+# changed app set as a JSON array for the caller's matrix. Logic lives in
+# scripts/changed-apps.sh, never here: this file plumbs event refs in and
+# JSON out.
 
 on:
   workflow_call:
     inputs:
       runner:
         description: >-
-          Runner label for all jobs (e.g. `self-hosted` for a tenant-owned
-          runner — GitHub bills minutes only on GitHub-hosted runners).
+          Runner label for every job: GitHub's `ubuntu-latest`, or the label of a
+          runner the tenant owns (GitHub bills minutes only on its own runners).
         required: false
         type: string
         default: ubuntu-latest
     outputs:
       apps:
         description: JSON array of changed app dir names (e.g. ["website"], or []).
-        value: ${{ jobs.detect.outputs.apps }}
+        value: ${{ jobs.changed-apps.outputs.apps }}
 
 permissions:
   contents: read
 
 jobs:
-  detect:
+  changed-apps:
     runs-on: ${{ inputs.runner }}
     outputs:
       apps: ${{ steps.run.outputs.apps }}

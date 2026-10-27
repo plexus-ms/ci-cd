@@ -1,0 +1,82 @@
+name: _pipeline
+
+# The per-app composition of the three verbs (§ 2 PLX-Delivery): verify the
+# app, release its image, deploy it. One reusable unit because the forge's
+# `needs` connects jobs and never the legs of a matrix: a job after a
+# matrixed job waits for every leg and sees one leg's outputs. The tenant's
+# deploy.yml fans this out over the changed set, one leg per app, and each leg
+# fails on its own. The job keys are the verbs, so a run reads
+# `app (website) / release`.
+
+on:
+  workflow_call:
+    inputs:
+      tenant:
+        description: Tenant slug, the first segment of the app dir on the host (/opt/stacks/<tenant>/<app>).
+        required: true
+        type: string
+      app:
+        required: true
+        type: string
+      deploy:
+        description: Deploy after the release (true on the branch that names an environment with a host).
+        required: false
+        type: boolean
+        default: false
+      host:
+        description: SSH target, e.g. deploy@1.2.3.4 (from the tenant's DEPLOY_HOST variable).
+        required: false
+        type: string
+        default: ''
+      runner:
+        description: >-
+          Runner label for every job: GitHub's `ubuntu-latest`, or the label of a
+          runner the tenant owns (GitHub bills minutes only on its own runners).
+        required: false
+        type: string
+        default: ubuntu-latest
+      persistent:
+        description: >-
+          The runner keeps its disk between jobs (a runner the tenant owns):
+          caches then stay on the machine instead of round-tripping through
+          GitHub (§ 4 PLX-Delivery).
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      ssh-key:
+        description: Private key authorized as the deploy user on the host.
+        required: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  verify:
+    uses: plexus-ms/ci-cd/.github/workflows/_verify.yml@0.63.0
+    with:
+      scope: apps/${{ inputs.app }}...
+      runner: ${{ inputs.runner }}
+      persistent: ${{ inputs.persistent }}
+
+  release:
+    needs: verify
+    uses: plexus-ms/ci-cd/.github/workflows/_release-image.yml@0.63.0
+    with:
+      app: ${{ inputs.app }}
+      runner: ${{ inputs.runner }}
+      persistent: ${{ inputs.persistent }}
+
+  deploy:
+    needs: release
+    if: ${{ inputs.deploy }}
+    uses: plexus-ms/ci-cd/.github/workflows/_deploy.yml@0.63.0
+    with:
+      tenant: ${{ inputs.tenant }}
+      app: ${{ inputs.app }}
+      image-ref: ${{ needs.release.outputs.image-ref }}
+      host: ${{ inputs.host }}
+      runner: ${{ inputs.runner }}
+    secrets:
+      ssh-key: ${{ secrets.ssh-key }}
