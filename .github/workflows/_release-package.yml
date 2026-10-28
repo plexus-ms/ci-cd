@@ -50,7 +50,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       # Build every package in dependency order before publishing: `changeset
       # publish` runs the packages' `prepack` hooks alphabetically, so a
-      # package bundling a workspace sibling would otherwise find no dist.
+      # package compiled against a workspace sibling's types would otherwise
+      # find no dist to resolve them from.
       - run: pnpm exec turbo run build
       - uses: changesets/action@v1
         with:
