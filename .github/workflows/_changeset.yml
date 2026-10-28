@@ -82,7 +82,7 @@ jobs:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
           token: ${{ steps.app.outputs.token || secrets.token || github.token }}
-      - uses: jdx/mise-action@v4
+      - uses: jdx/mise-action@v5
         with:
           cache: ${{ !inputs.persistent }}
       - run: plx -y changeset --base 'origin/${{ inputs.base }}'

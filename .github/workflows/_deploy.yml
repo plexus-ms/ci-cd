@@ -68,7 +68,7 @@ jobs:
       # reads apps/<app>/ relative here. Same SHA the image was built from.
       - uses: actions/checkout@v7
       # The caller's tools, plx among them.
-      - uses: jdx/mise-action@v4
+      - uses: jdx/mise-action@v5
       - name: Load SSH key
         run: |
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
