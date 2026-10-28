@@ -58,8 +58,11 @@ jobs:
       # no longer does, so 3.x publishes reached npm with no tag and no GitHub
       # release. v2 reads the CLI's structured output, pushes a tag per
       # published package and creates its release (both on by default), through
-      # the GitHub API, so the version commit and the tags are signed.
-      - uses: changesets/action@v2
+      # the GitHub API, so the version commit and the tags are signed. The
+      # action publishes no moving `v2` tag, so the pin is exact and the update
+      # bot carries it; our scripts call the CLI directly, so the
+      # CHANGESETS_OUTPUT the action hands them reaches it unchanged.
+      - uses: changesets/action@v2.1.2
         with:
           version-script: pnpm exec changeset version
           publish-script: pnpm exec changeset publish
