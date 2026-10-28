@@ -1,0 +1,75 @@
+name: _changeset
+
+# Mounts the changeset verb (§ 5 PLX-Delivery) on the update bot's pull
+# requests in a package repo. The bot writes no changesets, so a bump that
+# changes what a published package ships would never reach a release:
+# `plx changeset` writes the one the bump owes, and this workflow commits it
+# to the bot's branch. The verb is deterministic, so a rerun after the bot's
+# rebase changes nothing and the push is skipped when nothing is staged. The
+# caller pins plx in its mise.toml and calls this for the bot's branches
+# only; the commit author below is in the shared Renovate preset's
+# `gitIgnoredAuthors`, so the bot keeps rebasing the branch, dropping the
+# commit, and this run adds it back.
+#
+# A push with the workflow's own token starts no workflow run, so the branch's
+# new tip would carry no checks and a ruleset that requires them would block
+# the merge. Pass `token`, a fine-grained PAT or app token with contents write
+# on the repo, and the push runs the caller's checks like any other.
+
+on:
+  workflow_call:
+    inputs:
+      base:
+        description: The trunk the bot's branch is diffed against, at the merge base.
+        required: false
+        type: string
+        default: main
+      runner:
+        description: >-
+          Runner label for every job: GitHub's `ubuntu-latest`, or the label of a
+          runner the tenant owns (GitHub bills minutes only on its own runners).
+        required: false
+        type: string
+        default: ubuntu-latest
+      persistent:
+        description: >-
+          The runner keeps its disk between jobs (a runner the tenant owns):
+          caches then stay on the machine instead of round-tripping through
+          GitHub (§ 4 PLX-Delivery).
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      token:
+        description: >-
+          A token whose push starts the caller's workflows (a fine-grained PAT
+          with contents write). Without it the push uses the workflow token and
+          the branch's new tip carries no checks.
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  changeset:
+    runs-on: ${{ inputs.runner }}
+    # mise install points core.hooksPath at hk; its hooks would run the repo's
+    # checks on this one commit, which the caller's verify job already does.
+    env:
+      HK_SKIP_HOOK: pre-commit,pre-push
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+          token: ${{ secrets.token || github.token }}
+      - uses: jdx/mise-action@v4
+        with:
+          cache: ${{ !inputs.persistent }}
+      - run: plx -y changeset --base 'origin/${{ inputs.base }}'
+      - run: |
+          git add .changeset
+          git diff --cached --quiet && exit 0
+          git -c user.name='plx[bot]' -c user.email='plx-bot@users.noreply.github.com' \
+            commit -m 'chore: the changeset the bump owes'
+          git push
