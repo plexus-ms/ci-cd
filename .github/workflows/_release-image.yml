@@ -82,7 +82,7 @@ jobs:
       # and its cache stays on disk between jobs.
       - uses: docker/setup-buildx-action@v3
         if: ${{ !inputs.persistent }}
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: ${{ inputs.dockerfile != '' && inputs.dockerfile || format('apps/{0}/docker/Dockerfile', inputs.app) }}
