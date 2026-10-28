@@ -80,7 +80,7 @@ jobs:
       # cache to GitHub (type=gha), which a runner that dies after the job
       # needs. On a persistent runner the daemon's own BuildKit builds instead,
       # and its cache stays on disk between jobs.
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
         if: ${{ !inputs.persistent }}
       - uses: docker/build-push-action@v7
         with:
