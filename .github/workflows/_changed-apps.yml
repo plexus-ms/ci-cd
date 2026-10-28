@@ -2,8 +2,8 @@ name: _changed-apps
 
 # Mounts the changed-apps verb (§ 3 PLX-Delivery) on a push and emits the
 # changed app set as a JSON array for the caller's matrix. Logic lives in
-# scripts/changed-apps.sh, never here: this file plumbs event refs in and
-# JSON out.
+# `plx changed-apps` (@plexus-ms/cli, pinned in the caller's mise.toml), never
+# here: this file plumbs event refs in and JSON out.
 
 on:
   workflow_call:
@@ -34,12 +34,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      # The verb itself lives in ci-cd; pin it to the exact workflow version.
-      - uses: actions/checkout@v7
-        with:
-          repository: plexus-ms/ci-cd
-          ref: ${{ github.job_workflow_sha }}
-          path: .plexus-ci-src
+      # The caller's tools, plx among them (and pnpm, which the verb asks for the workspace graph).
       - uses: jdx/mise-action@v4
       - id: refs
         # PRs diff against the merge base; pushes against the previous tip.
@@ -50,8 +45,8 @@ jobs:
             echo "from=${{ github.event.before }}" >> "$GITHUB_OUTPUT"
           fi
       - id: run
-        # Verb prints one app per line; jq folds it to a compact JSON array
-        # ([] when empty) for fromJSON in the caller's matrix.
+        # The verb's JSON is the array ([] when empty) for fromJSON in the
+        # caller's matrix; jq compacts it onto the one line an output takes.
         run: |
-          apps=$(bash .plexus-ci-src/scripts/changed-apps.sh '${{ steps.refs.outputs.from }}' '${{ github.sha }}' | jq -R . | jq -sc .)
+          apps=$(plx --json changed-apps '${{ steps.refs.outputs.from }}' '${{ github.sha }}' | jq -c .)
           echo "apps=$apps" >> "$GITHUB_OUTPUT"

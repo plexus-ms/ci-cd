@@ -1,5 +1,7 @@
 # ci-cd is a plexus-ms repo and eats the initiative's own cooking (§ 1.8 PLX): tools pinned here, verbs as mise tasks, checks wired through hk.
-# The verb safety baseline — strict mode and shellcheck-clean — is enforced
+# The reusable workflows mount verbs of plx (@plexus-ms/cli, pinned by the
+# calling repo) and, until it moves there too, the deploy verb in scripts/,
+# whose safety baseline — strict mode and shellcheck-clean — is enforced
 # mechanically here, never on the honor system (PLX-Delivery, "Maintaining").
 
 # Verbs are asked as `mise :verb` like in every Plexus repo (§ 2 PLX-Repo); that
@@ -11,20 +13,21 @@ config_roots = ["."]
 
 [tools]
 hk = "latest"                # Git hooks
-shellcheck = "0.11.0"        # the verbs' static check
+shellcheck = "0.11.0"        # the deploy verb's static check
+actionlint = "1.7.12"        # the workflows' static check: expressions, inputs and outputs, shellcheck over run blocks
 
 [hooks]
 postinstall = "hk install --mise"
 
-# Contract verbs (§ 3 PLX-Repo) — the ones a bash-verb repo has no use for exist
-# and pass as documented no-ops.
+# Contract verbs (§ 3 PLX-Repo) — the ones this repo has no use for exist and
+# pass as documented no-ops.
 
 [tasks.dev]
 description = "No-op: nothing to start; the verbs are hand-runnable scripts"
 run = 'echo "dev: nothing to start in ci-cd"'
 
 [tasks.build]
-description = "No-op: bash verbs ship as source, referenced by tag"
+description = "No-op: workflows and the deploy verb ship as source, referenced by tag"
 run = 'echo "build: nothing to build in ci-cd"'
 
 [tasks.verify]
@@ -32,9 +35,12 @@ description = "Perform all steps that verify code quality: check, then test"
 run = ['mise run check', 'mise run test']
 
 [tasks.check]
-description = "Static checks: strict mode present and shellcheck clean, for every verb and the script each remote heredoc carries"
-run = './scripts/check.sh'
+description = "Static checks: actionlint over the workflows; strict mode present and shellcheck clean for the deploy verb and its remote heredoc"
+# `github.job_workflow_sha` is real (the SHA of a reusable workflow's own
+# repo) and newer than actionlint's schema; _deploy.yml needs it until the
+# deploy verb moves to plx, and the ignore goes with it.
+run = ['''actionlint -ignore 'property "job_workflow_sha" is not defined' ''', './scripts/check.sh']
 
 [tasks.test]
-description = "No-op: the verbs are exercised by the dogfood tenant's deploys"
+description = "No-op: the deploy verb is exercised by the dogfood tenant's deploys; the plx verbs are tested in plexus-ms/packages"
 run = 'echo "test: nothing to test in ci-cd"'

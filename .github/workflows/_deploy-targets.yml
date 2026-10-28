@@ -2,7 +2,8 @@ name: _deploy-targets
 
 # Mounts the deploy-targets verb (§ 3 PLX-Platform) on a platform repo and
 # emits {app: target} for the caller to index per matrix leg. Logic lives in
-# scripts/deploy-targets.sh, never here.
+# `plx deploy-targets` (@plexus-ms/cli, pinned in the caller's mise.toml),
+# never here.
 
 on:
   workflow_call:
@@ -29,10 +30,6 @@ jobs:
       map: ${{ steps.run.outputs.map }}
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/checkout@v7
-        with:
-          repository: plexus-ms/ci-cd
-          ref: ${{ github.job_workflow_sha }}
-          path: .plexus-ci-src
+      - uses: jdx/mise-action@v4
       - id: run
-        run: echo "map=$(bash .plexus-ci-src/scripts/deploy-targets.sh inventory)" >> "$GITHUB_OUTPUT"
+        run: echo "map=$(plx deploy-targets inventory)" >> "$GITHUB_OUTPUT"
