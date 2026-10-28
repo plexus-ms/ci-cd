@@ -36,10 +36,10 @@ jobs:
     runs-on: ${{ inputs.runner }}
     concurrency: release
     # mise install runs the postinstall hook, which points core.hooksPath at
-    # hk, so hk's hooks would fire on the commits and pushes changesets/action
-    # makes. Wrong in both directions: pre-push cannot resolve the tag objects
-    # `changeset publish` pushes, and re-running verify here only repeats
-    # what the verify job already ran.
+    # hk, so hk's hooks would fire on anything changesets/action commits or
+    # pushes through the git CLI. Wrong in both directions: pre-push cannot
+    # resolve the tag objects `changeset publish` creates, and re-running
+    # verify here only repeats what the verify job already ran.
     env:
       HK_SKIP_HOOK: pre-commit,pre-push
     steps:
@@ -53,11 +53,15 @@ jobs:
       # package compiled against a workspace sibling's types would otherwise
       # find no dist to resolve them from.
       - run: pnpm exec turbo run build
-      - uses: changesets/action@v1
+      # v2 is the one that understands @changesets/cli 3: v1 found the published
+      # packages by parsing the `New tag:` lines the 2.x CLI printed, which 3.x
+      # no longer does, so 3.x publishes reached npm with no tag and no GitHub
+      # release. v2 reads the CLI's structured output, pushes a tag per
+      # published package and creates its release (both on by default), through
+      # the GitHub API, so the version commit and the tags are signed.
+      - uses: changesets/action@v2
         with:
-          version: pnpm exec changeset version
-          publish: pnpm exec changeset publish
-          commit: "chore: version packages"
-          title: "Version Packages"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          version-script: pnpm exec changeset version
+          publish-script: pnpm exec changeset publish
+          commit-message: "chore: version packages"
+          pr-title: "Version Packages"
