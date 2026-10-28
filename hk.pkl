@@ -4,7 +4,7 @@ hooks {
   ["pre-commit"] {
     steps {
       ["check"] {
-        glob = List("scripts/*.sh", ".github/workflows/*.yml")
+        glob = List(".github/workflows/*.yml")
         check = "mise :check"
       }
     }

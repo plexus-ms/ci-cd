@@ -1,8 +1,9 @@
 name: _deploy
 
 # Mounts the deploy verb (§ 6 PLX-Delivery): launch a released artifact into
-# an execution environment. Logic lives in scripts/deploy.sh, never here; the
-# caller supplies the host and the SSH key. The caller is the app's SOURCE
+# an execution environment. Logic lives in `plx deploy` (@plexus-ms/cli,
+# pinned in the caller's mise.toml), never here; the caller supplies the host
+# and the SSH key. The caller is the app's SOURCE
 # repo, because the verb reads apps/<app>/docker/compose.yaml from the checkout
 # and renders it onto the host with the image ref pinned: an app repo's
 # _pipeline.yml after the release, or the platform repo's deploy.yml for a
@@ -66,12 +67,8 @@ jobs:
       # The caller's repo (the app's source repo) — cwd for the verb, which
       # reads apps/<app>/ relative here. Same SHA the image was built from.
       - uses: actions/checkout@v7
-      # The verb itself lives in ci-cd; pin it to the exact workflow version.
-      - uses: actions/checkout@v7
-        with:
-          repository: plexus-ms/ci-cd
-          ref: ${{ github.job_workflow_sha }}
-          path: .plexus-ci-src
+      # The caller's tools, plx among them.
+      - uses: jdx/mise-action@v4
       - name: Load SSH key
         run: |
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
@@ -79,10 +76,10 @@ jobs:
           echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
           echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
           printf '%s\n' "${{ secrets.ssh-key }}" | ssh-add -
+      # An empty option value is the same as an absent one to the verb, so
+      # both flags are always passed.
       - name: Deploy
-        env:
-          PLEXUS_HEALTH_URL: ${{ inputs.health-url }}
-        run: bash .plexus-ci-src/scripts/deploy.sh '${{ inputs.host }}' '${{ inputs.tenant }}' '${{ inputs.app }}' '${{ inputs.image-ref }}'
+        run: plx deploy '${{ inputs.host }}' '${{ inputs.tenant }}' '${{ inputs.app }}' --image '${{ inputs.image-ref }}' --health-url '${{ inputs.health-url }}'
       # A GitHub-hosted runner dies with the agent; a persistent one would keep
       # it running, deploy key loaded, for every later job on the machine.
       - name: Stop the SSH agent
