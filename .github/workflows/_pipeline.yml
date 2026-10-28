@@ -61,7 +61,7 @@ jobs:
     runs-on: ${{ inputs.runner }}
     steps:
       - uses: actions/checkout@v7
-      - uses: jdx/mise-action@v4
+      - uses: jdx/mise-action@v5
         with:
           cache: ${{ !inputs.persistent }}
       - run: mise verify apps/${{ inputs.app }}...

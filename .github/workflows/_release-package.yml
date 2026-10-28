@@ -44,7 +44,7 @@ jobs:
       HK_SKIP_HOOK: pre-commit,pre-push
     steps:
       - uses: actions/checkout@v7
-      - uses: jdx/mise-action@v4
+      - uses: jdx/mise-action@v5
         with:
           cache: ${{ !inputs.persistent }}
       - run: pnpm install --frozen-lockfile

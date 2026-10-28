@@ -35,7 +35,7 @@ jobs:
         with:
           fetch-depth: 0
       # The caller's tools, plx among them (and pnpm, which the verb asks for the workspace graph).
-      - uses: jdx/mise-action@v4
+      - uses: jdx/mise-action@v5
       - id: refs
         # PRs diff against the merge base; pushes against the previous tip.
         run: |
