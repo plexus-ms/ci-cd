@@ -73,7 +73,7 @@ jobs:
     steps:
       - id: app
         if: ${{ inputs.app_id != '' }}
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3
         with:
           app-id: ${{ inputs.app_id }}
           private-key: ${{ secrets.app_private_key }}
