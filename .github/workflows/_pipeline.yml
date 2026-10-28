@@ -5,8 +5,12 @@ name: _pipeline
 # `needs` connects jobs and never the legs of a matrix: a job after a
 # matrixed job waits for every leg and sees one leg's outputs. The tenant's
 # deploy.yml fans this out over the changed set, one leg per app, and each leg
-# fails on its own. The job keys are the verbs, so a run reads
-# `app (website) / release`.
+# fails on its own. The job keys are the verbs. The verify job carries the
+# three steps of _verify.yml inline rather than calling it, so that the
+# path of the gate every leg starts with reads `app (website) / verify`
+# instead of `app (website) / verify / verify`; the two stay identical by
+# hand. Release and deploy call their reusable workflows, which are mounts
+# in their own right for the platform repo, and read `… / release / release`.
 
 on:
   workflow_call:
@@ -54,11 +58,13 @@ permissions:
 
 jobs:
   verify:
-    uses: plexus-ms/ci-cd/.github/workflows/_verify.yml@0.64.0
-    with:
-      scope: apps/${{ inputs.app }}...
-      runner: ${{ inputs.runner }}
-      persistent: ${{ inputs.persistent }}
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jdx/mise-action@v4
+        with:
+          cache: ${{ !inputs.persistent }}
+      - run: mise verify apps/${{ inputs.app }}...
 
   release:
     needs: verify
