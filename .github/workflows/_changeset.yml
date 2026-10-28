@@ -13,8 +13,10 @@ name: _changeset
 #
 # A push with the workflow's own token starts no workflow run, so the branch's
 # new tip would carry no checks and a ruleset that requires them would block
-# the merge. Pass `token`, a fine-grained PAT or app token with contents write
-# on the repo, and the push runs the caller's checks like any other.
+# the merge. The caller passes either a GitHub App of the tenant's own
+# (`app_id` and `app_private_key`, contents write on the repo; the key never
+# expires and the token is minted per job) or `token`, a fine-grained PAT,
+# which expires and then degrades silently to the workflow token.
 
 on:
   workflow_call:
@@ -39,12 +41,23 @@ on:
         required: false
         type: boolean
         default: false
+      app_id:
+        description: >-
+          The ID of a GitHub App installed on the repo with contents write;
+          with `app_private_key`, the push is made with a token minted for
+          this job. Empty: `token` or the workflow token is used.
+        required: false
+        type: string
+        default: ''
     secrets:
+      app_private_key:
+        description: The private key of the app named by `app_id`.
+        required: false
       token:
         description: >-
           A token whose push starts the caller's workflows (a fine-grained PAT
-          with contents write). Without it the push uses the workflow token and
-          the branch's new tip carries no checks.
+          with contents write), when no app is passed. Without either the push
+          uses the workflow token and the branch's new tip carries no checks.
         required: false
 
 permissions:
@@ -58,11 +71,17 @@ jobs:
     env:
       HK_SKIP_HOOK: pre-commit,pre-push
     steps:
+      - id: app
+        if: ${{ inputs.app_id != '' }}
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ inputs.app_id }}
+          private-key: ${{ secrets.app_private_key }}
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
-          token: ${{ secrets.token || github.token }}
+          token: ${{ steps.app.outputs.token || secrets.token || github.token }}
       - uses: jdx/mise-action@v4
         with:
           cache: ${{ !inputs.persistent }}
