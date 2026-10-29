@@ -94,3 +94,12 @@ jobs:
             ${{ inputs.build-args }}
           cache-from: ${{ !inputs.persistent && 'type=gha' || '' }}
           cache-to: ${{ !inputs.persistent && 'type=gha,mode=max' || '' }}
+      # The daemon's builder keeps the image it built next to pushing it. On a
+      # persistent runner one image per app and commit would pile up, and
+      # nothing on the runner needs it: the deploy pulls it on the app host.
+      # The build cache holds the layers, so the next build loses nothing.
+      - name: Remove the local image
+        if: ${{ always() && inputs.persistent }}
+        env:
+          IMAGE_REF: ${{ steps.meta.outputs.image-ref }}
+        run: docker image rm "$IMAGE_REF" 2>/dev/null || true
