@@ -68,7 +68,7 @@ jobs:
 
   release:
     needs: verify
-    uses: plexus-ms/ci-cd/.github/workflows/_release-image.yml@0.75.0
+    uses: plexus-ms/ci-cd/.github/workflows/_release-image.yml@0.76.0
     with:
       app: ${{ inputs.app }}
       runner: ${{ inputs.runner }}
@@ -77,7 +77,7 @@ jobs:
   deploy:
     needs: release
     if: ${{ inputs.deploy }}
-    uses: plexus-ms/ci-cd/.github/workflows/_deploy.yml@0.75.0
+    uses: plexus-ms/ci-cd/.github/workflows/_deploy.yml@0.76.0
     with:
       tenant: ${{ inputs.tenant }}
       app: ${{ inputs.app }}
